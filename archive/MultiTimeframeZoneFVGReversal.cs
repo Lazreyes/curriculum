@@ -178,9 +178,9 @@ namespace NinjaTrader.NinjaScript.Strategies
             if (Position.MarketPosition != MarketPosition.Flat)
             {
                 if (isLong && Position.MarketPosition == MarketPosition.Short && Times[1][0] - entryTime >= TimeSpan.FromMinutes(FlipMinutes))
-                    ExitShort(0, "FlipExit", activeTradeZoneId >= 0 ? "ShortFVG" : string.Empty);
+                    ExitShort(0, "FlipExit", activeEntrySignal ?? "ShortFVG");
                 else if (!isLong && Position.MarketPosition == MarketPosition.Long && Times[1][0] - entryTime >= TimeSpan.FromMinutes(FlipMinutes))
-                    ExitLong(0, "FlipExit", activeTradeZoneId >= 0 ? "LongFVG" : string.Empty);
+                    ExitLong(0, "FlipExit", activeEntrySignal ?? "LongFVG");
                 else
                     return;
             }
@@ -222,9 +222,9 @@ namespace NinjaTrader.NinjaScript.Strategies
                     SetProfitTarget(stagedSignal, CalculationMode.Price, targetPrice);
 
                     if (stagedLong)
-                        EnterLongLimit(qty, stagedEntryPrice, stagedSignal);
+                        entryOrder = EnterLongLimit(qty, stagedEntryPrice, stagedSignal);
                     else
-                        EnterShortLimit(qty, stagedEntryPrice, stagedSignal);
+                        entryOrder = EnterShortLimit(qty, stagedEntryPrice, stagedSignal);
                 }
             }
 
@@ -282,7 +282,10 @@ namespace NinjaTrader.NinjaScript.Strategies
         {
             double dollarRisk = AccountSize * (RiskPerTradePercent / 100.0);
             double riskPerContract = StopLossPoints * Instrument.MasterInstrument.PointValue;
-            int qty = (int)Math.Floor(dollarRisk / Math.Max(riskPerContract, TickSize));
+            if (riskPerContract <= 0)
+                return 1;
+
+            int qty = (int)Math.Floor(dollarRisk / riskPerContract);
             return Math.Max(1, qty);
         }
 
@@ -298,7 +301,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnOrderUpdate(Order order, double limitPrice, double stopPrice, int quantity, int filled, double averageFillPrice, OrderState orderState, DateTime time, ErrorCode error, string nativeError)
         {
-            if (order.Name == stagedSignal)
+            if (entryOrder == null && order.Name == stagedSignal && (order.OrderAction == OrderAction.Buy || order.OrderAction == OrderAction.SellShort))
                 entryOrder = order;
 
             if (entryOrder != null && order == entryOrder && (orderState == OrderState.Cancelled || orderState == OrderState.Rejected))
