@@ -42,6 +42,7 @@ namespace NinjaTrader.NinjaScript.Strategies
         private bool nearMissArmed;
         private DateTime entryTime;
         private int activeTradeZoneId = -1;
+        private string activeEntrySignal;
 
         protected override void OnStateChange()
         {
