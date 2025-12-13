@@ -301,7 +301,7 @@ namespace NinjaTrader.NinjaScript.Strategies
 
         protected override void OnOrderUpdate(Order order, double limitPrice, double stopPrice, int quantity, int filled, double averageFillPrice, OrderState orderState, DateTime time, ErrorCode error, string nativeError)
         {
-            if (entryOrder == null && order.Name == stagedSignal && (order.OrderAction == OrderAction.Buy || order.OrderAction == OrderAction.SellShort))
+            if (entryOrder == null && (order.Name == stagedSignal || order.FromEntrySignal == stagedSignal) && (order.OrderAction == OrderAction.Buy || order.OrderAction == OrderAction.SellShort))
                 entryOrder = order;
 
             if (entryOrder != null && order == entryOrder && (orderState == OrderState.Cancelled || orderState == OrderState.Rejected))
@@ -315,17 +315,25 @@ namespace NinjaTrader.NinjaScript.Strategies
 
             if (execution.Order.OrderState == OrderState.Filled || execution.Order.OrderState == OrderState.PartFilled)
             {
-                activeTradeZoneId = stagedZoneId;
-                AccumulationZone zone = zones.Find(z => z.Id == stagedZoneId);
-                if (zone != null)
-                    zone.LastTrade = time;
+                if (activeTradeZoneId == -1)
+                {
+                    activeTradeZoneId = stagedZoneId;
+                    AccumulationZone zone = zones.Find(z => z.Id == stagedZoneId);
+                    if (zone != null)
+                        zone.LastTrade = time;
+                }
 
                 entryTime = time;
                 activeEntrySignal = execution.Order.Name;
                 breakevenArmed = false;
-                stagedZoneId = -1;
-                stagedEntryPrice = 0;
-                nearMissArmed = false;
+
+                if (execution.Order.OrderState == OrderState.Filled)
+                {
+                    stagedZoneId = -1;
+                    stagedEntryPrice = 0;
+                    nearMissArmed = false;
+                    stagedSignal = null;
+                }
             }
         }
 
