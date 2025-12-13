@@ -492,7 +492,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             
             if (Position.MarketPosition == MarketPosition.Long)
             {
-                profitPoints = (currentPrice - Position.AveragePrice) / TickSize * TickSize;
+                profitPoints = (currentPrice - Position.AveragePrice) / TickSize;
                 
                 // Check for breakeven trigger
                 if (!_breakevenApplied && profitPoints >= BreakevenTriggerPoints)
@@ -505,7 +505,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             }
             else if (Position.MarketPosition == MarketPosition.Short)
             {
-                profitPoints = (Position.AveragePrice - currentPrice) / TickSize * TickSize;
+                profitPoints = (Position.AveragePrice - currentPrice) / TickSize;
                 
                 // Check for breakeven trigger
                 if (!_breakevenApplied && profitPoints >= BreakevenTriggerPoints)
@@ -535,13 +535,13 @@ namespace NinjaTrader.NinjaScript.Strategies
                     // Set initial Stop Loss and Take Profit
                     if (order.Name == "Long FVG Entry")
                     {
-                        SetStopLoss(CalculationMode.Price, _entryPrice - StopLossPoints);
-                        SetProfitTarget(CalculationMode.Price, _entryPrice + TakeProfitPoints);
+                        SetStopLoss(CalculationMode.Price, _entryPrice - StopLossPoints * TickSize);
+                        SetProfitTarget(CalculationMode.Price, _entryPrice + TakeProfitPoints * TickSize);
                     }
                     else
                     {
-                        SetStopLoss(CalculationMode.Price, _entryPrice + StopLossPoints);
-                        SetProfitTarget(CalculationMode.Price, _entryPrice - TakeProfitPoints);
+                        SetStopLoss(CalculationMode.Price, _entryPrice + StopLossPoints * TickSize);
+                        SetProfitTarget(CalculationMode.Price, _entryPrice - TakeProfitPoints * TickSize);
                     }
                     
                     Print($"[{time}] Order filled at {averageFillPrice:F2}. SL and TP set.");
@@ -572,7 +572,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             double distanceFromEntry = Math.Abs(currentPrice - _pendingOrderPrice);
             
             // Check if price came near the entry
-            if (!_nearMissTriggered && distanceFromEntry <= NearMissThresholdPoints)
+            if (!_nearMissTriggered && distanceFromEntry <= NearMissThresholdPoints * TickSize)
             {
                 _nearMissTriggered = true;
                 _nearMissStartPrice = currentPrice;
@@ -584,7 +584,7 @@ namespace NinjaTrader.NinjaScript.Strategies
             {
                 double moveAwayDistance = Math.Abs(currentPrice - _nearMissStartPrice);
                 
-                if (moveAwayDistance >= NearMissCancelDistancePoints)
+                if (moveAwayDistance >= NearMissCancelDistancePoints * TickSize)
                 {
                     CancelOrder(_entryOrder);
                     _entryOrder = null;
@@ -593,7 +593,7 @@ namespace NinjaTrader.NinjaScript.Strategies
                     _nearMissStartPrice = 0;
                     
                     Print($"[{Time[0]}] Order cancelled due to near miss invalidation. " +
-                          $"Price moved {moveAwayDistance:F2} points away.");
+                          $"Price moved {moveAwayDistance / TickSize:F2} points away.");
                 }
             }
         }
